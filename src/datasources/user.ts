@@ -34,6 +34,7 @@ export class UserAPI extends DataSource {
   }
 
   async login({ email, password }: AuthPayload) {
+    // TODO: add validation of email and password
     try {
       const user = await this.userRepository.findOne({ email });
 
@@ -69,6 +70,15 @@ export class UserAPI extends DataSource {
       if (isDuplicate) throw new UserInputError('EMAIL_ALREADY_EXISTS');
 
       throw new ApolloError('INTERNAL_ERROR', '500', { detail: error.message });
+    }
+  }
+
+  async getProfile(id: string): Promise<string | Error> {
+    try {
+      const user = await this.userRepository.findOne(id);
+      return user.email;
+    } catch (error) {
+      throw new ApolloError(error.message);
     }
   }
 }
