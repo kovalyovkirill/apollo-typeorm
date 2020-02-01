@@ -8,8 +8,8 @@ const typeDefs = gql`
   }
 
   type LoginResponse {
-    email: String,
-    password: String
+    id: ID,
+    token: String
   }
 
   type User {
