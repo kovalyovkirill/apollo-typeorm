@@ -1,14 +1,17 @@
 import { DataSource, DataSourceConfig } from 'apollo-datasource';
 import { Repository } from 'typeorm';
 import { User } from './entities/user';
+import { RefreshToken } from './entities/refreshToken';
 import { UserInputError, ApolloError } from 'apollo-server';
 
 import { getRepository } from 'typeorm';
 
 import * as bcrypt from 'bcrypt';
+import * as uuid from 'uuid/v4';
 import { generateToken } from '../utils';
 
 const SALT_ROUNDS = 10;
+const REFRESH_TOKEN_EXPIRED = 30 * 24 * 60 * 60 * 1000;
 
 interface AuthPayload { email?: string, password?: string }
 
@@ -23,10 +26,13 @@ export class UserAPI extends DataSource {
 
   userRepository: Repository<User>;
 
+  refreshTokenRepository: Repository<RefreshToken>;
+
   constructor() {
     super();
 
-    this.userRepository = getRepository(User)
+    this.userRepository = getRepository(User);
+    this.refreshTokenRepository = getRepository(RefreshToken);
   }
 
   initialize(config) {
@@ -44,11 +50,20 @@ export class UserAPI extends DataSource {
 
       if (!match) return new UserInputError('WRONG_PASSWORD');
 
-      console.log('im here')//eslint-disable-line
-      console.log(user.id)//eslint-disable-line
-      console.log(user.email)//eslint-disable-line
+      const token = generateToken(user.id, user.email);
+      const refreshToken = uuid();
 
-      return { id: user.id, token: generateToken(user.id, user.email) }
+      const expired = new Date(Date.now() + REFRESH_TOKEN_EXPIRED);
+
+      const refreshTokenData = this.refreshTokenRepository.create({
+        expired,
+        tokenValue: refreshToken,
+        user: user,
+      });
+
+      await this.refreshTokenRepository.save(refreshTokenData);
+
+      return { id: user.id, token, refreshToken };
     } catch (error) {
       throw new ApolloError('INTERNAL_ERROR', '500', { error: error.message });
     }
