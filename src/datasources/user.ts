@@ -2,7 +2,7 @@ import { DataSource, DataSourceConfig } from 'apollo-datasource';
 import { Repository } from 'typeorm';
 import { User } from './entities/user';
 import { RefreshToken } from './entities/refreshToken';
-import { UserInputError, ApolloError } from 'apollo-server';
+import { UserInputError, ApolloError, ForbiddenError } from 'apollo-server';
 
 import { getRepository } from 'typeorm';
 
@@ -14,6 +14,10 @@ const SALT_ROUNDS = 10;
 const REFRESH_TOKEN_EXPIRED = 30 * 24 * 60 * 60 * 1000;
 
 interface AuthPayload { email?: string, password?: string }
+interface CredentialsResponse {
+  token: string,
+  refreshToken: string,
+}
 
 export class UserAPI extends DataSource {
   /**
@@ -35,8 +39,33 @@ export class UserAPI extends DataSource {
     this.refreshTokenRepository = getRepository(RefreshToken);
   }
 
-  initialize(config) {
+  initialize(config): void {
     this.context = config.context;
+  }
+
+  validateTokenExpired(expired: Date): boolean {
+    return Date.parse(expired.toISOString()) > Date.now();
+  }
+
+  async generateUserCredentials(user: User): Promise<CredentialsResponse> {
+    try {
+      const token = generateToken(user.id, user.email);
+      const refreshToken = uuid();
+
+      const expired = new Date(Date.now() + REFRESH_TOKEN_EXPIRED);
+
+      const refreshTokenData = this.refreshTokenRepository.create({
+        expired,
+        tokenValue: refreshToken,
+        user: user,
+      });
+
+      await this.refreshTokenRepository.save(refreshTokenData);
+
+      return { token, refreshToken }
+    } catch (error) {
+      throw error.message;
+    }
   }
 
   async login({ email, password }: AuthPayload) {
@@ -50,18 +79,20 @@ export class UserAPI extends DataSource {
 
       if (!match) return new UserInputError('WRONG_PASSWORD');
 
-      const token = generateToken(user.id, user.email);
-      const refreshToken = uuid();
+      const { token, refreshToken } = await this.generateUserCredentials(user);
 
-      const expired = new Date(Date.now() + REFRESH_TOKEN_EXPIRED);
-
-      const refreshTokenData = this.refreshTokenRepository.create({
-        expired,
-        tokenValue: refreshToken,
-        user: user,
-      });
-
-      await this.refreshTokenRepository.save(refreshTokenData);
+      // const token = generateToken(user.id, user.email);
+      // const refreshToken = uuid();
+      //
+      // const expired = new Date(Date.now() + REFRESH_TOKEN_EXPIRED);
+      //
+      // const refreshTokenData = this.refreshTokenRepository.create({
+      //   expired,
+      //   tokenValue: refreshToken,
+      //   user: user,
+      // });
+      //
+      // await this.refreshTokenRepository.save(refreshTokenData);
 
       return { id: user.id, token, refreshToken };
     } catch (error) {
@@ -94,6 +125,28 @@ export class UserAPI extends DataSource {
       return user.email;
     } catch (error) {
       throw new ApolloError(error.message);
+    }
+  }
+
+  async renewToken(tokenValue: string): Promise<CredentialsResponse | Error> {
+    try {
+      const tokenData = await this.refreshTokenRepository.findOne({ tokenValue });
+
+      if (!tokenData) return new ForbiddenError('TOKEN_NOT_FOUND');
+
+      const isValid = this.validateTokenExpired(tokenData.expired);
+
+      if (!isValid) return new ForbiddenError('TOKEN_EXPIRED');
+
+      const user = await this.userRepository.findOne(tokenData.user);
+
+      if (!user) return new ForbiddenError('USER_NOT_FOUND');
+
+      await this.refreshTokenRepository.delete(tokenData.id);
+
+      return await this.generateUserCredentials(user)
+    } catch (error) {
+      throw new ForbiddenError(error.message);
     }
   }
 }

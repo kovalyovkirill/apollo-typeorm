@@ -19,6 +19,9 @@ const resolvers = {
     createUser: async (_, { email, password }: LoginPayload, { dataSources }) => {
       return await dataSources.userAPI.createUser({ email, password });
     },
+    renewToken: async (_, { refreshToken }, { dataSources }) => {
+      return await dataSources.userAPI.renewToken(refreshToken);
+    }
   }
 };
 

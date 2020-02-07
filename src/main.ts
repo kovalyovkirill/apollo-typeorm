@@ -32,13 +32,11 @@ const server = new ApolloServer({
 
     // Get the user token from the headers.
     const token = req.headers.authorization || '';
-    console.log(token)//eslint-disable-line
 
     // try to retrieve a user with the token
     try {
       const user = verifyToken(token);
       // add the user to the context
-      console.log(user)//eslint-disable-line
       return { user };
     } catch (error) {
       return { user: null };

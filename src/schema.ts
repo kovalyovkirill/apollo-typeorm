@@ -25,6 +25,7 @@ const typeDefs = gql`
   type Mutation {
     login(email: String, password: String): LoginResponse
     createUser(email: String, password: String): DBUser
+    renewToken(refreshToken: String) : RefreshTokenResponse
   }
 `;
 
