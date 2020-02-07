@@ -81,19 +81,6 @@ export class UserAPI extends DataSource {
 
       const { token, refreshToken } = await this.generateUserCredentials(user);
 
-      // const token = generateToken(user.id, user.email);
-      // const refreshToken = uuid();
-      //
-      // const expired = new Date(Date.now() + REFRESH_TOKEN_EXPIRED);
-      //
-      // const refreshTokenData = this.refreshTokenRepository.create({
-      //   expired,
-      //   tokenValue: refreshToken,
-      //   user: user,
-      // });
-      //
-      // await this.refreshTokenRepository.save(refreshTokenData);
-
       return { id: user.id, token, refreshToken };
     } catch (error) {
       throw new ApolloError('INTERNAL_ERROR', '500', { error: error.message });
