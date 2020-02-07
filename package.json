@@ -20,6 +20,7 @@
   "scripts": {
     "clean": "rimraf coverage build tmp",
     "build": "tsc -p tsconfig.release.json",
+    "start": "yarn clean && yarn build && cp .env build/src && cd build/src/ && node main.js",
     "dev": "nodemon -e ts,graphql -x ts-node src/main.ts",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "jest --coverage",
