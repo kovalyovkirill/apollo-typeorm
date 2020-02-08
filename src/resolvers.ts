@@ -5,6 +5,10 @@ interface LoginPayload {
   password: string;
 }
 
+interface LogoutPayload {
+  refreshToken: string;
+}
+
 const resolvers = {
   Query: {
     profile: async (_, __, { dataSources, user }) => {
@@ -15,6 +19,9 @@ const resolvers = {
   Mutation: {
     login: async (_, { email, password }: LoginPayload, { dataSources }) => {
       return await dataSources.userAPI.login({ email, password });
+    },
+    logout: async (_, { refreshToken }: LogoutPayload, { dataSources }) => {
+      return await dataSources.userAPI.logout(refreshToken);
     },
     createUser: async (_, { email, password }: LoginPayload, { dataSources }) => {
       return await dataSources.userAPI.createUser({ email, password });

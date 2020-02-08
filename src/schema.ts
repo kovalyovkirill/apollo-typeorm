@@ -6,6 +6,10 @@ const typeDefs = gql`
     profile: String
   }
 
+  type DefautResponse {
+    ok: Boolean
+  }
+
   type LoginResponse {
     id: ID,
     token: String,
@@ -24,6 +28,7 @@ const typeDefs = gql`
 
   type Mutation {
     login(email: String, password: String): LoginResponse
+    logout(refreshToken: String): DefautResponse
     createUser(email: String, password: String): DBUser
     renewToken(refreshToken: String) : RefreshTokenResponse
   }

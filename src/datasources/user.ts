@@ -18,6 +18,9 @@ interface CredentialsResponse {
   token: string,
   refreshToken: string,
 }
+interface LogoutResponse {
+  ok: boolean;
+}
 
 export class UserAPI extends DataSource {
   /**
@@ -134,6 +137,15 @@ export class UserAPI extends DataSource {
       return await this.generateUserCredentials(user)
     } catch (error) {
       throw new ForbiddenError(error.message);
+    }
+  }
+
+  async logout(tokenValue: string): Promise<LogoutResponse | Error> {
+    try {
+      await this.refreshTokenRepository.delete({ tokenValue });
+      return { ok: true };
+    } catch (error) {
+      throw new ApolloError(error.message);
     }
   }
 }
