@@ -118,7 +118,7 @@ export class UserAPI extends DataSource {
     }
   }
 
-  async renewToken(tokenValue: string): Promise<CredentialsResponse | Error> {
+  async renewToken(tokenValue: string) {
     try {
       const tokenData = await this.refreshTokenRepository.findOne({ tokenValue });
 
